@@ -1,0 +1,233 @@
+/* ============================================================
+   ГРАФИТ — Найм Design System
+   Базовые токены: цвета, типографика, отступы
+   ============================================================ */
+
+:root {
+  /* ---------- БРЕНД (Графит) ---------- */
+  --graphite-deeper:   #1a3048;   /* глубокая навигация, primary текст */
+  --graphite-dark:     #2d4a68;   /* основной фирменный синий */
+  --graphite-mid:      #3d6080;   /* primary (кнопки, маркеры) */
+  --graphite-soft:     #5a9ec4;   /* secondary, focus ring */
+  --graphite-sky:      #7fb8dc;   /* акцент, светлая подсветка */
+  --graphite-pale:     #d4eaf7;   /* фон активных капсул */
+  --graphite-mist:     #e1ebf4;   /* primary-light, фоны badge */
+
+  /* ---------- AUTH-ГРАДИЕНТ (фирменный навигационный) ---------- */
+  --auth-grad-1: #6a93b8;
+  --auth-grad-2: #3d5f85;
+  --auth-grad-3: #1a3048;
+  --auth-grad-angle: 150deg;
+  --auth-gradient: linear-gradient(var(--auth-grad-angle),
+                     var(--auth-grad-1) 0%,
+                     var(--auth-grad-2) 45%,
+                     var(--auth-grad-3) 100%);
+
+  /* ---------- АКЦЕНТ ПОЛЬЗОВАТЕЛЯ (профиль — выбор) ---------- */
+  --accent-base:  #4a5568;   /* базовый, тёплый графит */
+  --accent-blue:  #2b6cb0;
+  --accent-navy:  #2c5282;
+  --accent-plum:  #553c9a;
+  --accent-teal:  #285e61;
+  --accent-honey: #6b5c38;  /* Amber — директор / суперадмин */
+  --accent-jade:  #1f6b52;  /* Jedi — только суперадмин */
+
+  /* ---------- ПРОЕКТЫ (графитовый регистр — в одной температуре с брендом) ---------- */
+  --project-lenta-from:    #3a6db5;
+  --project-lenta-to:      #1c4082;
+  --project-vkusvill-from: #3a9555;
+  --project-vkusvill-to:   #1f6035;
+  --project-ozon-from:     #509cc8;
+  --project-ozon-to:       #2d7aa8;
+
+  /* ---------- ПОВЕРХНОСТИ ---------- */
+  --bg:        #F3F4F6;   /* фон страницы */
+  --surface:   #F9FAFB;   /* карточка / inset */
+  --white:     #FFFFFF;
+  --border:    #E5E7EB;
+
+  /* ---------- ТЕКСТ ---------- */
+  --text:               #111827;
+  --text-muted:         #6B7280;
+  --text-on-dark:       #FFFFFF;
+  --text-on-dark-muted: rgba(255,255,255,0.75);
+
+  /* ---------- СЕМАНТИКА ---------- */
+  --danger:         #4F1E27;   /* приглушённый oxblood */
+  --danger-bg:      #EDE3E5;   /* холодноватая пыльно-розовая подложка */
+  --danger-border:  #B89499;
+  --danger-text:    #4F1E27;
+  --warning-bg:     #FFFBEB;
+  --warning-border: #FCD34D;
+  --warning-text:   #92400E;
+  --success:        #059669;
+  --success-bg:     #DDE7E1;
+  --success-border: #94B2A4;
+  --success-text:   #234A3D;
+  --info-bg:        #E1EBF4;
+  --info-border:    #9FB7CD;
+  --info-text:      #1A3048;
+
+  /* алиасы primary — старый код из Найм компилируется */
+  --primary:        var(--graphite-mid);
+  --primary-dark:   var(--graphite-dark);
+  --primary-deeper: var(--graphite-deeper);
+  --primary-light:  var(--graphite-mist);
+  --accent:         var(--graphite-sky);
+  --accent-light:   var(--graphite-pale);
+  --secondary:      var(--graphite-soft);
+  --secondary-light: #dceef8;
+
+  /* ---------- РАДИУСЫ (графит — сдержанная мягкость) ---------- */
+  --radius-xs:    6px;    /* инпуты в bar */
+  --radius-sm:    8px;    /* карточки, кнопки */
+  --radius:      10px;    /* модалки, primary CTA */
+  --radius-sheet: 14px;   /* нижние листы */
+  --radius-pill: 100px;   /* badge, capsule */
+
+  /* ---------- ТЕНИ ---------- */
+  --shadow-sm:        0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:        0 8px 32px rgba(0,0,0,0.16);
+  --shadow-up:        0 -4px 32px rgba(0,0,0,0.14);
+  --shadow-cta:       0 2px 10px rgba(26,48,72,0.30);
+  --shadow-cta-hover: 0 4px 18px rgba(26,48,72,0.40);
+
+  /* ---------- TOUCH + БЕЗОПАСНЫЕ ЗОНЫ (mobile-first) ---------- */
+  --touch:       48px;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+
+  /* ---------- SPACING (clamp — отзывчивый) ---------- */
+  --space-xs:  clamp(4px,  1vw,   6px);
+  --space-sm:  clamp(6px,  1.5vw, 10px);
+  --space-md:  clamp(10px, 2vw,   16px);
+  --space-lg:  clamp(16px, 3vw,   24px);
+  --space-xl:  clamp(24px, 4vw,   40px);
+
+  /* ---------- Z-INDEX (стек) ---------- */
+  --z-map:      1;
+  --z-backdrop: 100;
+  --z-panel:    200;
+  --z-modal:    300;
+  --z-sidebar:  400;
+  --z-toast:    500;
+
+  /* ---------- ФОКУС ---------- */
+  --focus-ring-color:  var(--graphite-soft);
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
+  /* ---------- SIDEBAR ---------- */
+  --sidebar-width: 200px;
+
+  /* ============================================================
+     ТИПОГРАФИКА — системный шрифт (mobile-first, ru)
+     ============================================================ */
+  --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:   ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+                 Consolas, 'Liberation Mono', monospace;
+
+  /* размеры */
+  --fs-display: 30px;   /* экран входа, hero */
+  --fs-h1:      22px;   /* заголовки разделов */
+  --fs-h2:      20px;   /* заголовки модалок и панелей */
+  --fs-h3:      18px;   /* блоки внутри модалок */
+  --fs-body:    15px;   /* основной текст кнопок и форм */
+  --fs-md:      14px;   /* стандарт абзаца */
+  --fs-sm:      13px;   /* списки, поля в bar */
+  --fs-xs:      12px;   /* сноски, meta */
+  --fs-2xs:     11px;   /* uppercase eyebrow */
+
+  /* веса */
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* трекинг */
+  --tracking-tight:   -0.5px;   /* display */
+  --tracking-snug:    -0.3px;   /* h2/h3 */
+  --tracking-normal:   0;
+  --tracking-wide:     0.2px;   /* кнопки */
+  --tracking-eyebrow:  0.6px;   /* uppercase меток */
+
+  /* высота строк */
+  --lh-tight: 1.2;
+  --lh-snug:  1.35;
+  --lh-body:  1.5;
+}
+
+/* ============================================================
+   СЕМАНТИЧЕСКИЕ КЛАССЫ ТИПОГРАФИКИ
+   ============================================================ */
+
+body, .ds-body {
+  font-family: var(--font-system);
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ds-display {
+  font-size: var(--fs-display);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+}
+
+.ds-h1 {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--lh-tight);
+}
+
+.ds-h2 {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--lh-snug);
+}
+
+.ds-h3 {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-snug);
+  line-height: var(--lh-snug);
+}
+
+.ds-small {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+}
+
+.ds-meta {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+
+.ds-eyebrow {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ds-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.ds-cta {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
+}

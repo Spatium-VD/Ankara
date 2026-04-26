@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2d4a68">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        input, textarea { -webkit-user-select: text; user-select: text; }
+    </style>
+    <title>Платформа Потребность</title>
+    <link rel="icon" href="assets/brand-logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/brand-logo.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+    <!-- Дизайн-система (Графит) — после app CSS, чтобы токены и base typography имели приоритет -->
+    <link rel="stylesheet" href="colors_and_type.css" />
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<button type="button" id="sidebar-toggle" class="sidebar-toggle btn-icon btn-hamburger hidden" aria-label="Меню и разделы" title="Меню и разделы"><img class="btn-hamburger-logo-img" src="assets/brand-logo.png" width="28" height="28" alt="" decoding="async" /><span class="btn-hamburger-icon" aria-hidden="true">☰</span></button>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
+<aside id="app-sidebar" class="sidebar hidden">
+  <div class="sidebar-header">
+    <button class="sidebar-brand" id="sidebar-brand-btn" aria-label="Свернуть меню" title="Свернуть / развернуть">
+      <img src="assets/brand-logo.png" alt="Логотип" class="sidebar-brand-logo">
+      <span class="sidebar-role-badge" id="sidebar-role-badge"></span>
+    </button>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav" role="navigation" aria-label="Разделы">
+    <!-- рендерится renderSidebar() -->
+  </nav>
+  <div class="sidebar-footer">
+    <span class="sidebar-username" id="sidebar-username"></span>
+    <button type="button" class="sidebar-logout" id="sidebar-logout-btn" aria-label="Выйти из аккаунта">Выйти</button>
+  </div>
+</aside>
+<!-- /SIDEBAR -->
+
+    <!-- Экран входа -->
+    <div id="password-screen">
+        <img src="assets/brand-logo.png" alt="" class="auth-logo-img">
+        <h1>Платформа по работе с наймом</h1>
+        <input type="text" id="login-input" autocomplete="username" placeholder="Логин">
+        <input type="password" id="password-input" autocomplete="current-password" placeholder="Пароль">
+        <button type="button" onclick="loginSubmit()">Войти</button>
+    </div>
+
+    <!-- Выбор режима после входа (оставлен для совместимости с JS, но скрыт — идём сразу на карту) -->
+    <div id="mode-choice" class="hidden">
+        <div class="mode-choice-inner">
+            <h2>Платформа Потребность</h2>
+            <div class="mode-choice-actions">
+                <button type="button" id="admin-users-btn" class="btn btn-ghost mode-choice-admin-btn" style="display:none" onclick="openAdminUsersModal()">Пользователи</button>
+                <button type="button" class="btn btn-ghost mode-choice-logout" onclick="logoutApp()">Выйти</button>
+            </div>
+            <div class="mode-buttons">
+                <button class="mode-card" onclick="chooseMode('potrebnost')">
+                    <span class="mode-icon">📋</span>
+                    <span class="mode-title">Карта потребности</span>
+                    <span class="mode-desc">Лента + ВкусВилл + Ozon</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Загрузка карты после логина -->
+    <div id="app-loader" class="hidden" role="status" aria-live="polite">
+        <div class="app-loader-stack">
+            <img src="assets/brand-logo.png" alt="" class="loader-logo">
+            <p id="app-loader-title" class="app-loader-title">Загрузка…</p>
+            <p id="app-loader-detail" class="app-loader-detail hidden"></p>
+        </div>
+    </div>
+
+    <div class="app-shell" id="app-shell">
+
+    <!-- ================================================================
+         ГЛАВНЫЙ ЭКРАН: Карта потребности (все проекты на одной карте)
+         ================================================================ -->
+    <div id="app-potrebnost" class="hidden" style="display: none;">
+
+        <div id="promotion-map-context" class="promotion-map-context hidden" aria-label="Подача заявок: выбор точек на карте" role="region">
+            <p class="promotion-map-context-text">
+                <span class="promotion-map-context-title">Режим выбора точек</span>
+                <span class="promotion-map-context-hint">Кликните по меткам, чтобы отметить склады. Нажмите «Закончить выбор» — вернётесь к форме и сможете отправить заявку.</span>
+            </p>
+            <div class="promotion-map-context-actions" role="group" aria-label="Действия">
+                <button type="button" id="promotion-map-finish-btn" class="btn btn-primary btn-sm promotion-map-finish-btn">Закончить выбор точек</button>
+            </div>
+        </div>
+
+        <div id="potrebnost-map-chrome" class="potrebnost-map-chrome">
+            <div class="potrebnost-bar-row potrebnost-bar-row--chrome" aria-label="Меню и поиск">
+                <button type="button" class="btn-icon btn-hamburger" onclick="toggleAppSidebarDrawer(event)" title="Меню и разделы" aria-label="Открыть меню"><img class="btn-hamburger-logo-img" src="assets/brand-logo.png" width="28" height="28" alt="" decoding="async" /><span class="btn-hamburger-icon" aria-hidden="true">☰</span></button>
+                <div class="stats-search potrebnost-search-tk">
+                    <input type="text" id="tk-search-potrebnost" placeholder="ТК / склад / адрес" />
+                    <button type="button" class="btn btn-secondary stats-search-btn" onclick="searchTKPotrebnost()">Найти</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сцена карты: тайл Leaflet + отдельные плашки в углах (не один монолит) -->
+        <div class="potrebnost-map-stage">
+        <div id="map-potrebnost" aria-label="Карта потребности"></div>
+
+        <div class="potrebnost-bottom-stack" aria-label="Панель поиска и кандидата">
+        <button type="button" id="potrebnost-filters-toggle" class="potrebnost-filters-toggle" aria-expanded="false" aria-controls="potrebnost-filters-drawer">
+            <span class="potrebnost-filters-toggle-label">Фильтры и кандидат</span>
+            <span class="potrebnost-filters-chevron" aria-hidden="true"></span>
+        </button>
+        <div id="potrebnost-filters-drawer" class="potrebnost-filters-drawer">
+        <div class="potrebnost-map-dock" role="group" aria-label="Панель карты: фильтры и адрес">
+
+        <div class="potrebnost-map-float potrebnost-map-float--toolbar" role="group" aria-label="Поиск и фильтры">
+        <div id="potrebnost-stats-bar" class="stats-bar">
+            <div class="potrebnost-toolbar-row">
+            <div class="potrebnost-bar-row potrebnost-bar-row--filters">
+                <div class="stats-search potrebnost-search-tk desktop-tk-search">
+                    <input type="text" id="tk-search-potrebnost-desktop" placeholder="ТК / склад / адрес" />
+                    <button type="button" class="btn btn-secondary stats-search-btn" onclick="searchTKPotrebnost()">Найти</button>
+                </div>
+                <div class="stats-search potrebnost-search-project">
+                    <select id="demand-project-filter" class="demand-job-select" onchange="onDemandProjectFilterChange()" title="Фильтр по проекту">
+                        <option value="all">Все проекты</option>
+                        <option value="lenta">Лента</option>
+                        <option value="vkusvill">ВкусВилл</option>
+                        <option value="ozon">Ozon</option>
+                    </select>
+                </div>
+                <select id="demand-job-filter" class="demand-job-select" onchange="onDemandFilterChange()" title="Фильтр по должности">
+                    <option value="">Все вакансии</option>
+                </select>
+            </div>
+            <div class="potrebnost-filters-actions" role="group" aria-label="Доп. действия и стажировка">
+            <details class="potrebnost-map-actions" id="potrebnost-map-actions">
+                <summary class="potrebnost-map-actions__summary" title="Сброс, фильтр пустых, редактор карты">
+                    <span class="visually-hidden">Ещё: сброс, скрыть пустые, редактор</span>
+                    <span class="potrebnost-map-actions__summary-text" aria-hidden="true">Ещё</span>
+                </summary>
+                <div class="potrebnost-map-actions__list">
+                    <button type="button" class="btn btn-ghost demand-reset-btn" onclick="resetDemandFilter()">Сбросить</button>
+                    <button type="button" class="btn btn-ghost" id="demand-hide-gray-btn" onclick="toggleDemandHideGray()" title="Скрыть точки на карте без открытой потребности">Скрыть пустые</button>
+                    <button type="button" class="btn btn-ghost btn-icon-text" id="demand-editor-btn" onclick="toggleDemandEditorMode()" title="Перемещать точки на карте" aria-label="Редактор карты, перемещение точек">Редактор</button>
+                </div>
+            </details>
+            <button class="btn btn-primary btn-sm btn-staj-top potrebnost-staj--bar" type="button" onclick="openStajForm()" title="Записать на стажировку">+ Стажировка</button>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <div class="potrebnost-map-float potrebnost-map-float--candidate" role="group" aria-label="Адрес кандидата">
+        <div id="candidate-route-bar" class="stats-bar candidate-route-bar" aria-label="Адрес кандидата и ближайшие точки">
+            <div class="stats-search candidate-address-search">
+                <input type="text" id="candidate-address-input" placeholder="Адрес кандидата или кликните по карте" autocomplete="street-address" />
+            </div>
+            <button type="button" class="btn btn-secondary stats-search-btn potrebnost-nearby-btn" id="potrebnost-nearby-btn" onclick="geocodeCandidateAndShowNearest()">Рядом</button>
+            <p id="candidate-geocode-status" class="candidate-geocode-status hidden" role="status"></p>
+            <ul id="candidate-nearest-list" class="candidate-nearest-list" aria-live="polite"></ul>
+            <div id="candidate-route-actions" class="candidate-route-actions hidden">
+                <a id="candidate-route-link" class="btn btn-secondary btn-sm" href="#" target="_blank" rel="noopener noreferrer">Маршрут</a>
+                <button type="button" class="btn btn-primary btn-sm" onclick="copyCandidateRouteMessage()">Текст кандидату</button>
+            </div>
+        </div>
+        </div>
+
+        </div><!-- .potrebnost-map-dock -->
+        </div><!-- #potrebnost-filters-drawer -->
+        </div><!-- .potrebnost-bottom-stack -->
+
+        <div class="potrebnost-staj-fab" aria-label="Стажировка">
+            <button type="button" class="btn btn-primary btn-sm btn-staj-top potrebnost-staj--fab" onclick="openStajForm()" title="Записать на стажировку">+ Стажировка</button>
+        </div>
+        </div><!-- .potrebnost-map-stage -->
+
+        <!-- Редактор -->
+        <div id="demand-editor-strip" class="hidden demand-editor-strip">
+            <span>Редактор: выбери точку, затем кликни по карте куда перенести</span>
+            <button class="btn btn-primary" onclick="finishDemandEditing()">Готово</button>
+        </div>
+
+        <!-- Панель точки -->
+        <div id="demand-panel" class="hidden">
+            <div class="panel-handle"></div>
+            <button class="btn-close" onclick="hideDemandPanel()" title="Закрыть">×</button>
+            <div id="demand-info"></div>
+            <div class="panel-actions" id="demand-panel-actions">
+                <button class="btn btn-primary" onclick="openStajFormForCurrentPoint()">Записать на стажировку</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         РАЗДЕЛ: Стажировки (список / таблица)
+         ================================================================ -->
+    <div id="app-staj" class="hidden" style="display: none;">
+        <div class="staj-topbar">
+            <h2 class="staj-topbar-title">Стажировки</h2>
+            <div class="staj-filters">
+                <select id="staj-filter-status" class="demand-job-select" title="Статус / итог">
+                    <option value="">Все</option>
+                    <option value="pending">Этап: ожидание</option>
+                    <option value="confirmed">Этап: подтверждено</option>
+                    <option value="snoozed">Этап: отложено</option>
+                    <option value="completed">Итог: прошла</option>
+                    <option value="no_show">Итог: не явился</option>
+                    <option value="cancelled">Итог: отмена</option>
+                    <option value="rescheduled">Итог: перенос</option>
+                </select>
+                <input type="text" id="staj-filter-search" class="staj-search-input" placeholder="Поиск по ТК, кандидату…" />
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openStajForm()">+ Записать</button>
+            <button type="button" class="btn-icon btn-hamburger" onclick="toggleAppSidebarDrawer(event)" title="Меню" aria-label="Открыть меню"><img class="btn-hamburger-logo-img" src="assets/brand-logo.png" width="28" height="28" alt="" decoding="async" /><span class="btn-hamburger-icon" aria-hidden="true">☰</span></button>
+        </div>
+        <div id="staj-list" class="staj-list">
+            <p class="staj-empty">Загрузка стажировок…</p>
+        </div>
+        <div class="staj-card-list" id="staj-card-list">
+            <!-- рендерится renderStajCards() -->
+        </div>
+    </div>
+
+    <!-- ================================================================
+         РАЗДЕЛ: Объезды (прототип, в разработке)
+         ================================================================ -->
+    <div id="app" style="display: none;">
+        <div id="stats-bar">
+            <div class="stats-search">
+                <input type="number" id="tk-search-input" inputmode="numeric" pattern="[0-9]*" placeholder="№ ТК" />
+                <button class="btn btn-secondary stats-search-btn" onclick="searchTK()">Найти</button>
+            </div>
+            <span id="stats-summary">За 14 дней: ...</span>
+            <div class="stats-actions">
+                <button class="btn btn-ghost btn-sm" id="editor-btn" onclick="toggleEditorMode()" title="Редактор">Ред.</button>
+                <button class="btn btn-ghost btn-sm" onclick="toggleDashboard()" title="Дашборд">Дашборд</button>
+            </div>
+            <span class="proto-badge">в разработке</span>
+            <button type="button" class="btn-icon btn-hamburger" onclick="toggleAppSidebarDrawer(event)" title="Меню" aria-label="Открыть меню"><img class="btn-hamburger-logo-img" src="assets/brand-logo.png" width="28" height="28" alt="" decoding="async" /><span class="btn-hamburger-icon" aria-hidden="true">☰</span></button>
+            <div id="editor-bar" class="hidden">
+                <div class="editor-mode-toggle">
+                    <button class="toggle-btn active" id="mode-move-btn" onclick="setEditorSubMode('move')" title="Двигать маркеры">✋ Двигать</button>
+                    <button class="toggle-btn" id="mode-highlight-btn" onclick="setEditorSubMode('highlight')" title="Отмечать важные ТК">🔴 Важные</button>
+                </div>
+                <button class="btn btn-primary" onclick="finishEditing()">Готово</button>
+            </div>
+        </div>
+        <div id="map"></div>
+        <div id="tk-panel" class="hidden">
+            <div class="panel-handle"></div>
+            <button class="btn-close" onclick="hideTKPanel()" title="Закрыть">×</button>
+            <div id="tk-info"></div>
+        </div>
+        <div id="dashboard" class="hidden">
+            <button class="btn-close btn-close-dash" onclick="toggleDashboard()">×</button>
+            <div class="dashboard-content">
+                <h3>Дашборд</h3>
+                <canvas id="stats-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         РАЗДЕЛ: Аналитика (в разработке)
+         ================================================================ -->
+    <div id="app-analytics" class="hidden" style="display: none;">
+        <div id="analytics-stats-bar" class="stats-bar analytics-stats-bar-wrap">
+            <select id="analytics-color-by" class="demand-job-select analytics-color-select" onchange="onAnalyticsColorByChange()" title="Цвет по метрике">
+                <option value="avgShift">Средний выход в смену</option>
+                <option value="avgFotWeek">Средний ФОТ в неделю</option>
+            </select>
+            <span id="analytics-summary-line" class="analytics-summary-line" title="Сводка по данным листа «Аналитика»"></span>
+            <div class="analytics-compare-inline">
+                <span class="analytics-compare-label">Сравнить ТК</span>
+                <input type="number" id="analytics-compare-a" class="analytics-compare-input" inputmode="numeric" placeholder="№1" title="Номер первой ТК" />
+                <input type="number" id="analytics-compare-b" class="analytics-compare-input" inputmode="numeric" placeholder="№2" title="Номер второй ТК" />
+                <button type="button" class="btn btn-secondary analytics-compare-btn" onclick="runAnalyticsCompare()">Сравнить</button>
+            </div>
+            <span class="proto-badge">в разработке</span>
+            <button type="button" class="btn-icon btn-hamburger" onclick="toggleAppSidebarDrawer(event)" title="Меню" aria-label="Открыть меню"><img class="btn-hamburger-logo-img" src="assets/brand-logo.png" width="28" height="28" alt="" decoding="async" /><span class="btn-hamburger-icon" aria-hidden="true">☰</span></button>
+        </div>
+        <div id="analytics-compare-result" class="analytics-compare-result hidden" role="region" aria-label="Сравнение двух ТК"></div>
+        <div id="map-analytics"></div>
+        <div id="analytics-panel" class="hidden">
+            <div class="panel-handle"></div>
+            <button class="btn-close" onclick="hideAnalyticsPanel()" title="Закрыть">×</button>
+            <div id="analytics-info"></div>
+        </div>
+    </div>
+
+    <!-- === РАЗДЕЛ: МАТЕРИАЛЫ === -->
+    <section id="section-materials" class="hidden" aria-label="Материалы">
+      <div class="section-page">
+        <h2 class="section-title">Материалы</h2>
+        <p class="section-subtitle">Учебные материалы для работы с кандидатами</p>
+        <a id="materials-doc-link" class="btn btn-primary" href="#" target="_blank" rel="noopener">
+          Открыть Google Doc ↗
+        </a>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ДАШБОРД (Директор) === -->
+    <section id="section-dashboard" class="hidden" aria-label="Дашборд">
+      <div class="section-page">
+        <h2 class="section-title">Дашборд</h2>
+        <div class="dashboard-kpi-grid" id="dashboard-kpi-grid">
+          <div class="kpi-card"><div class="kpi-value" id="kpi-stores">—</div><div class="kpi-label">Активных точек</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-staj">—</div><div class="kpi-label">Стажировок за месяц</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-pending">—</div><div class="kpi-label">Заявок на утверждении</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ЭКСПОРТ (заглушка) === -->
+    <section id="section-export" class="hidden" aria-label="Экспорт">
+      <div class="section-page">
+        <h2 class="section-title">Экспорт</h2>
+        <p class="section-placeholder-note">Раздел в разработке</p>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ПОДАЧА ЗАЯВОК (Менеджер) === -->
+    <section id="section-promotion-submit" class="hidden" aria-label="Подача заявок">
+      <div class="section-page promotion-submit-page">
+        <div class="promotion-submit-flow">
+        <div id="promotion-vm-banner" class="promotion-vm-banner" role="status" aria-live="polite">
+          <p class="promotion-vm-banner-kicker">Продвижение точек → руководитель операторов (колл-центр)</p>
+          <p class="promotion-vm-banner-lead">
+            Отметьте склады на карте и отправьте заявку — она уйдёт <strong>в работу</strong> руководителю операторов для приоритета по площадкам и вакансиям.
+          </p>
+          <p id="promotion-vm-banner-status" class="promotion-vm-banner-status">Точек не выбрано. Нажмите кнопку ниже, откроется карта — кликайте по меткам.</p>
+        </div>
+        <h2 class="section-title">Подача точек на продвижение</h2>
+        <p class="section-subtitle">Сначала точки на карте, затем приоритет и комментарий</p>
+        <div class="promotion-cta-wrap">
+          <button
+            type="button"
+            id="promotion-select-mode-btn"
+            class="btn btn-primary promotion-select-map-btn"
+            onclick="promotionToggleSelectMode()"
+          >
+            Выбрать точки на карте
+          </button>
+        </div>
+        <div id="promotion-selected-list" class="promotion-selected-list"></div>
+        <div id="promotion-form" class="promotion-form hidden">
+          <div class="promotion-field-block">
+            <label class="form-label" for="promotion-priority">Приоритет</label>
+            <select id="promotion-priority" class="form-select">
+              <option value="normal">Обычный</option>
+              <option value="urgent">Срочно</option>
+            </select>
+          </div>
+          <div class="promotion-field-block">
+            <label class="form-label" for="promotion-comment">Комментарий / описание</label>
+            <span class="form-hint">По желанию: какие вакансии продвинуть, срочность, площадки — увидит руководитель в заявке.</span>
+            <textarea id="promotion-comment" class="form-textarea" rows="4" placeholder="Напр.: кассир, сборщик; срочно ВкусВилл; Авито"></textarea>
+          </div>
+          <div class="promotion-form-footer">
+            <button type="button" id="promotion-submit-btn" class="btn btn-primary promotion-submit-cta">Подать на продвижение</button>
+            <button type="button" id="promotion-cancel-btn" class="btn btn-secondary promotion-form-cancel">Отмена</button>
+          </div>
+        </div>
+        <div id="promotion-success" class="promotion-success hidden">
+          <p>Заявка отправлена</p>
+          <button type="button" id="promotion-new-btn" class="btn btn-ghost">Новая заявка</button>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ОЧЕРЕДЬ ЗАЯВОК (Руководитель Операторов) === -->
+    <section id="section-promotion-queue" class="hidden" aria-label="Очередь заявок">
+      <div class="section-page">
+        <h2 class="section-title">Заявки на продвижение</h2>
+        <p class="section-subtitle">Склады с карты, экспорт в CSV или текст.</p>
+        <div id="promotion-queue-list" class="promotion-queue-list">
+          <!-- рендерится opsManagerQueueInit() -->
+        </div>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ПОЛЬЗОВАТЕЛИ === -->
+    <section id="section-users" class="hidden" aria-label="Пользователи">
+      <div class="section-page">
+        <h2 class="section-title">Пользователи</h2>
+
+        <div class="users-add-block">
+          <h3 class="profile-block-title">Новый пользователь</h3>
+          <div class="users-add-form">
+            <input type="text" id="up-login" placeholder="Логин" autocomplete="off">
+            <input type="password" id="up-password" placeholder="Пароль" autocomplete="new-password">
+            <input type="text" id="up-display" placeholder="Имя (необязательно)">
+            <select id="up-role" title="Роль" class="form-select"></select>
+            <button type="button" class="btn btn-primary" id="up-submit-btn">Создать</button>
+          </div>
+          <p id="up-status" class="section-placeholder-note" style="min-height:18px"></p>
+        </div>
+
+        <h3 class="profile-block-title" style="margin-top:24px">Список</h3>
+        <div id="users-page-list" class="users-page-list">
+          <p class="section-placeholder-note">Загрузка…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: МОЙ ПРОФИЛЬ === -->
+    <section id="section-profile" class="hidden" aria-label="Мой профиль">
+      <div class="section-page">
+        <h2 class="section-title">Мой профиль</h2>
+        <div class="profile-card">
+          <div class="profile-avatar" id="profile-avatar"></div>
+          <div class="profile-info">
+            <div class="profile-name" id="profile-name"></div>
+            <div class="profile-role" id="profile-role"></div>
+            <div class="profile-login" id="profile-login"></div>
+            <div class="profile-accent-line" id="profile-accent-line">
+              <span class="profile-accent-dot" id="profile-accent-dot" aria-hidden="true"></span>
+              <span class="profile-accent-label" id="profile-accent-label">Graphite</span>
+            </div>
+          </div>
+        </div>
+        <div class="profile-section-block" id="profile-password-block">
+          <h3 class="profile-block-title">Смена пароля</h3>
+          <label class="form-label" for="profile-current-password">Текущий пароль</label>
+          <input type="password" id="profile-current-password" class="profile-form-input" autocomplete="current-password" placeholder="Текущий пароль" />
+          <label class="form-label profile-form-label-spaced" for="profile-new-password">Новый пароль</label>
+          <input type="password" id="profile-new-password" class="profile-form-input" autocomplete="new-password" placeholder="Без нулей, не короче 6 символов" />
+          <label class="form-label profile-form-label-spaced" for="profile-new-password-2">Повтор нового пароля</label>
+          <input type="password" id="profile-new-password-2" class="profile-form-input" autocomplete="new-password" placeholder="Ещё раз" />
+          <p class="profile-accent-status" id="profile-password-status"></p>
+          <button type="button" class="btn btn-primary profile-password-save-btn" id="profile-password-save">Сохранить пароль</button>
+        </div>
+        <div class="profile-section-block">
+          <h3 class="profile-block-title">Цвет акцента</h3>
+          <p class="section-subtitle">Цвет кнопок и активных элементов интерфейса</p>
+          <div class="accent-swatches" id="accent-swatches"></div>
+          <p class="profile-accent-status" id="profile-accent-status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- === РАЗДЕЛ: ОБСУЖДЕНИЕ === -->
+    <section id="section-discussion" class="hidden" aria-label="Обсуждение">
+      <div class="section-page discussion-layout">
+        <h2 class="section-title">Обсуждение</h2>
+        <p class="section-subtitle">Общая стена — идеи, вопросы, мысли для всей команды</p>
+        <div class="discussion-compose">
+          <textarea id="discussion-input" class="form-textarea discussion-textarea"
+            placeholder="Напишите что-нибудь…" rows="3" maxlength="2000"></textarea>
+          <div class="discussion-compose-footer">
+            <span class="discussion-char-count" id="discussion-char-count">0 / 2000</span>
+            <button id="discussion-post-btn" class="btn btn-primary">Опубликовать</button>
+          </div>
+        </div>
+        <div id="discussion-feed" class="discussion-feed">
+          <p class="section-placeholder-note">Загрузка…</p>
+        </div>
+      </div>
+    </section>
+
+    </div><!-- /app-shell -->
+
+    <!-- ================================================================
+         Гамбургер-меню (боковой drawer)
+         ================================================================ -->
+    <div id="main-menu-overlay" class="menu-overlay hidden" onclick="toggleMainMenu()"></div>
+    <nav id="main-menu" class="main-menu hidden" aria-label="Главное меню">
+        <div class="menu-header">
+            <img src="assets/brand-logo.png" alt="" class="menu-logo">
+            <span class="menu-title">Потребность</span>
+            <button class="btn-close menu-close" onclick="toggleMainMenu()">×</button>
+        </div>
+        <ul class="menu-items">
+            <li><button class="menu-item active" data-section="potrebnost" onclick="navigateTo('potrebnost')">
+                <span class="menu-item-icon menu-icon-map"></span> Карта потребности
+            </button></li>
+            <li><button class="menu-item" data-section="staj" onclick="navigateTo('staj')">
+                <span class="menu-item-icon menu-icon-staj"></span> Стажировки
+            </button></li>
+            <li><button class="menu-item" data-section="obezdy" onclick="navigateTo('obezdy')">
+                <span class="menu-item-icon menu-icon-route"></span> Объезды <span class="proto-badge">в разработке</span>
+            </button></li>
+            <li><button class="menu-item" data-section="analytics" onclick="navigateTo('analytics')">
+                <span class="menu-item-icon menu-icon-chart"></span> Аналитика <span class="proto-badge">в разработке</span>
+            </button></li>
+        </ul>
+        <div class="menu-footer">
+            <button type="button" id="menu-admin-btn" class="menu-item" style="display:none" onclick="openAdminUsersModal(); toggleMainMenu();">
+                <span class="menu-item-icon menu-icon-user"></span> Пользователи
+            </button>
+            <button type="button" class="menu-item menu-logout" onclick="logoutApp()">
+                <span class="menu-item-icon menu-icon-exit"></span> Выйти
+            </button>
+        </div>
+    </nav>
+
+    <!-- Модалка стажировки -->
+    <div id="staj-form-overlay" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal staj-modal" role="dialog" aria-labelledby="staj-form-title">
+            <button type="button" class="btn-close" onclick="closeStajForm()" title="Закрыть">×</button>
+            <div class="staj-modal-title-row">
+                <h3 id="staj-form-title">Записать на стажировку</h3>
+                <!-- Иконка — видна только для Лента, управляется JS -->
+                <span id="staj-gform-badge" class="staj-gform-badge hidden" aria-label="Данные уйдут в Google-таблицу проекта">
+                    <span class="staj-gform-badge-icon">📋</span>
+                    <span class="staj-gform-badge-tooltip">
+                        При сохранении данные запишутся в платформу<br>
+                        <strong>и автоматически отправятся в Google-таблицу проекта Лента.</strong><br>
+                        Проверьте поля перед отправкой.
+                    </span>
+                </span>
+            </div>
+            <div class="staj-form-body">
+                <label class="staj-form-label" for="staj-project">Проект</label>
+                <select id="staj-project" class="demand-job-select" title="Проект" onchange="onStajProjectChange()">
+                    <option value="ВкусВилл">ВкусВилл</option>
+                    <option value="Озон">Озон</option>
+                    <option value="Лента офф">Лента офф (кассиры, продавцы и др.)</option>
+                    <option value="Лента Пикеры">Лента Пикеры (склад)</option>
+                </select>
+                <input type="text" id="staj-candidate" placeholder="Имя кандидата / ссылка" autocomplete="off">
+                <label class="staj-form-label" for="staj-phone">Телефон (необязательно)</label>
+                <input type="tel" id="staj-phone" inputmode="tel" autocomplete="tel" placeholder="+7 900 000-00-00">
+                <input type="number" id="staj-tk" inputmode="numeric" placeholder="№ ТК / точки">
+                <div class="staj-date-time-row">
+                    <input type="date" id="staj-date" title="Дата стажировки">
+                    <input type="time" id="staj-time" title="Время стажировки" value="10:00">
+                </div>
+
+                <!-- Специальность — заполняется автоматически при клике по вакансии -->
+                <label class="staj-form-label" for="staj-job">Специальность</label>
+                <input type="text" id="staj-job" placeholder="Должность (заполняется по вакансии)" autocomplete="off">
+
+                <textarea id="staj-note" placeholder="Комментарий (необязательно)" rows="2"></textarea>
+
+                <!-- Дополнительные поля — только для Лента офф / Лента Пикеры -->
+                <div id="staj-lenta-fields" class="staj-lenta-fields hidden">
+                    <div class="staj-lenta-badge">
+                        <span class="staj-lenta-badge-icon">📋</span>
+                        <span>Поля ниже нужны для автоматического заполнения Google-формы проекта</span>
+                    </div>
+
+                    <label class="staj-form-label" for="staj-dob">Дата рождения стажёра
+                        <span class="staj-form-hint">(нужна охране для пропуска)</span>
+                    </label>
+                    <input type="text" id="staj-dob" placeholder="01.01.1990" autocomplete="bday" inputmode="numeric">
+
+                    <label class="staj-form-label" for="staj-shift-ready">Готов сразу выйти в смену?</label>
+                    <select id="staj-shift-ready" class="demand-job-select" title="Готовность к смене">
+                        <option value="">— не указано —</option>
+                        <option value="Да">Да</option>
+                        <option value="Нет, стажировка 1-2 часа (не оплачивается)">Нет, стажировка 1-2 ч. (не оплачивается)</option>
+                    </select>
+
+                    <label class="staj-form-label" for="staj-lmk">Есть ли ЛМК?</label>
+                    <select id="staj-lmk" class="demand-job-select" title="ЛМК">
+                        <option value="">— не указано —</option>
+                        <option value="Да">Да</option>
+                        <option value="Есть справка (проходит мед. комиссию)">Есть справка (проходит мед. комиссию)</option>
+                        <option value="Нет, готов сделать">Нет, готов сделать</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="staj-submit-btn" onclick="submitStajForm()">Записать</button>
+                <button type="button" class="btn btn-ghost" onclick="closeStajForm()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Админ: пользователи -->
+    <div id="admin-users-overlay" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal admin-users-modal" role="dialog" aria-labelledby="admin-users-title">
+            <button type="button" class="btn-close admin-users-close" onclick="closeAdminUsersModal()" title="Закрыть">×</button>
+            <h3 id="admin-users-title">Пользователи</h3>
+            <div id="admin-users-list" class="admin-users-list"></div>
+            <hr class="admin-users-hr">
+            <h4>Новый пользователь</h4>
+            <div class="admin-users-form">
+                <input type="text" id="nu-login" placeholder="Логин" autocomplete="off">
+                <input type="password" id="nu-password" placeholder="Пароль" autocomplete="new-password">
+                <input type="text" id="nu-display" placeholder="Имя (необязательно)">
+                <select id="nu-role" title="Роль"></select>
+                <button type="button" class="btn btn-primary" onclick="submitNewUser()">Создать</button>
+            </div>
+            <button type="button" class="btn btn-ghost admin-users-done" onclick="closeAdminUsersModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модалка подтверждения отправки в Google-форму Лента -->
+    <div id="lenta-confirm-overlay" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal lenta-confirm-modal" role="alertdialog" aria-labelledby="lenta-confirm-title" aria-describedby="lenta-confirm-body">
+            <div class="lenta-confirm-header">
+                <span class="lenta-confirm-icon">📋</span>
+                <h3 id="lenta-confirm-title">Подтверждение отправки</h3>
+            </div>
+            <div id="lenta-confirm-body" class="lenta-confirm-body">
+                <!-- Заполняется JS перед показом -->
+            </div>
+            <div class="lenta-confirm-notice">
+                <strong>Внимание:</strong> данные будут сохранены в платформе
+                <em>и одновременно отправлены в Google-таблицу проекта Лента.</em>
+                Рекомендуем проверить информацию. Убедитесь, что данные введены верно
+                — исправить ответ в Google-форме вручную можно, но только через ссылку в почте.
+            </div>
+            <div class="modal-actions lenta-confirm-actions">
+                <button type="button" class="btn btn-primary" id="lenta-confirm-yes" onclick="lentaConfirmSubmit()">
+                    Подтвердить и отправить
+                </button>
+                <button type="button" class="btn btn-ghost" onclick="closeLentaConfirm()">
+                    Отмена — вернуться к форме
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Попап ожидания -->
+    <div id="loading-overlay" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true" aria-labelledby="loading-text" tabindex="-1">
+        <div class="loading-card">
+            <div class="spinner" aria-hidden="true"></div>
+            <p id="loading-text" class="loading-title">Подождите…</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
